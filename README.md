@@ -119,3 +119,7 @@ ros2 topic echo /cmd_vel
 ## Safety behaviour
 
 The controller publishes a zero velocity command when detections are invalid, the cone pair is reversed, or the perception update times out.
+
+## Video
+
+https://drive.google.com/file/d/13nKGqd9Z5ggIJkrGQ4r6ISFWwyiYIKlq/view?usp=sharing
