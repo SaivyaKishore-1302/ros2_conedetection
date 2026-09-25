@@ -1,6 +1,6 @@
 # ROS 2 Cone Detection and Navigation
 
-A camera-based TurtleBot3 navigation pipeline for ROS 2 Humble and Gazebo. The robot detects orange and blue cones, estimates the track centre, and publishes velocity commands that steer it between the cone boundaries.
+A camera-based TurtleBot3 navigation pipeline for ROS 2 Humble and Gazebo. The robot detects orange and blue cylinders, estimates the track centre, and publishes velocity commands that steer it between the cylinders boundaries.
 
 ## Pipeline
 
