@@ -6,6 +6,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 
 
+
 def calculate_angular_velocity(cte, kp, maxSpeed):
     if not math.isfinite(cte):
         return None
