@@ -1,9 +1,16 @@
 build/
 install/
 log/
-.pytest_cache/
+
 __pycache__/
 *.py[cod]
-.vscode/
+.pytest_cache/
+.coverage
+htmlcov/
 
 .idea/
+.vscode/
+.agents/
+.codex/
+
+.aws/

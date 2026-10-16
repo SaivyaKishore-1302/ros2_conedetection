@@ -7,7 +7,6 @@ from std_msgs.msg import Float32
 from cone_interfaces.msg import ConeArray
 
 
-
 def calculate_cte(orangeX, blueX, width):
     if width <= 0 or orangeX < 0 or blueX < 0:
         return math.nan

@@ -2,12 +2,11 @@ import os
 from glob import glob
 from setuptools import find_packages, setup
 
-
 pkg = 'cone_navigator'
 
 setup(
     name=pkg,
-    version='0.0.0',
+    version='0.1.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -20,6 +19,10 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
+    maintainer='Saivya Kishore',
+    maintainer_email='saivya.kishore@gmail.com',
+    description='Camera-based cone detection and navigation for ROS 2',
+    license='Apache-2.0',
     extras_require={
         'test': ['pytest'],
     },

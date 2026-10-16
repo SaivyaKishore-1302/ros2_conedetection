@@ -7,7 +7,6 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 
-
 def generate_launch_description():
     world = os.path.join(
         get_package_share_directory("cone_navigator"),

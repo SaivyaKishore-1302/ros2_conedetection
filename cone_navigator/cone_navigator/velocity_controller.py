@@ -6,7 +6,6 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 
 
-
 def calculate_angular_velocity(cte, kp, maxSpeed):
     if not math.isfinite(cte):
         return None
@@ -15,16 +14,25 @@ def calculate_angular_velocity(cte, kp, maxSpeed):
     return max(-maxSpeed, min(maxSpeed, turn))
 
 
+def calculate_forward_velocity(turn, cruiseSpeed, minSpeed, slowdownGain):
+    speed = cruiseSpeed / (1.0 + slowdownGain * abs(turn))
+    return max(minSpeed, min(cruiseSpeed, speed))
+
+
 class VelocityController(Node):
     def __init__(self):
         super().__init__("velocity_controller")
 
-        self.declare_parameter("forward_speed", 0.2)
-        self.declare_parameter("kp", 0.004)
-        self.declare_parameter("max_angular_speed", 1.0)
+        self.declare_parameter("forward_speed", 0.10)
+        self.declare_parameter("minimum_forward_speed", 0.04)
+        self.declare_parameter("turn_slowdown_gain", 3.0)
+        self.declare_parameter("kp", 0.012)
+        self.declare_parameter("max_angular_speed", 1.5)
         self.declare_parameter("command_timeout", 0.5)
 
         self.speed = self.get_parameter("forward_speed").value
+        self.minSpeed = self.get_parameter("minimum_forward_speed").value
+        self.slowdownGain = self.get_parameter("turn_slowdown_gain").value
         self.kp = self.get_parameter("kp").value
         self.maxSpeed = self.get_parameter("max_angular_speed").value
         self.timeout = self.get_parameter("command_timeout").value
@@ -49,7 +57,12 @@ class VelocityController(Node):
             return
 
         cmd = Twist()
-        cmd.linear.x = float(self.speed)
+        cmd.linear.x = float(calculate_forward_velocity(
+            turn,
+            self.speed,
+            self.minSpeed,
+            self.slowdownGain,
+        ))
         cmd.angular.z = float(turn)
         self.pub.publish(cmd)
         self.lastTime = self.get_clock().now()

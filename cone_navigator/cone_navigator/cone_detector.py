@@ -5,9 +5,8 @@ from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data as sensorQos
 from sensor_msgs.msg import Image
-
 
 from cone_interfaces.msg import ConeArray
 
@@ -19,9 +18,9 @@ blueHigh = np.array([130, 255, 255], dtype=np.uint8)
 
 
 def analyse_cone(mask, minArea=200.0, scale=20.0):
-    contours, _ = cv2.findContours(
+    contours = cv2.findContours(
         mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
+    )[0]
     if not contours:
         return None
 
@@ -58,7 +57,7 @@ class ConeDetector(Node):
             Image,
             "/camera/image_raw",
             self.image_callback,
-            qos_profile_sensor_data,
+            sensorQos,
         )
 
     def image_callback(self, msg):

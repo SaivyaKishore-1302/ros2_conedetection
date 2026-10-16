@@ -2,9 +2,9 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>cone_navigator</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>Drives a TurtleBot3 between orange/blue cone track boundaries in Gazebo</description>
-  <maintainer email="savy@todo.todo">savy</maintainer>
+  <maintainer email="saivya.kishore@gmail.com">Saivya Kishore</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
@@ -22,11 +22,9 @@
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>turtlebot3_gazebo</exec_depend>
 
-  <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-  
 
   <export>
     <build_type>ament_python</build_type>
