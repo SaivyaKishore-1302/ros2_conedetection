@@ -13,14 +13,21 @@ def test_angular_velocity_is_clamped():
     assert calculate_angular_velocity(200.0, 0.012, 1.5) == -1.5
 
 
+def test_angular_velocity_uses_deadband():
+    assert calculate_angular_velocity(3.0, 0.012, 1.5, 4.0) == 0.0
+
+
 def test_forward_velocity_uses_cruise_speed_on_straight():
-    assert calculate_forward_velocity(0.0, 0.10, 0.04, 3.0) == 0.10
+    speed = calculate_forward_velocity(0.0, 0.2, 0.30, 0.10, 0.65, 0.4)
+    assert speed == 0.30
 
 
-def test_forward_velocity_slows_for_turns():
-    speed = calculate_forward_velocity(0.5, 0.10, 0.04, 3.0)
-    assert 0.04 <= speed < 0.10
+def test_forward_velocity_brakes_more_near_cones():
+    nearSpeed = calculate_forward_velocity(0.5, 0.15, 0.30, 0.10, 0.65, 0.4)
+    farSpeed = calculate_forward_velocity(0.5, 0.50, 0.30, 0.10, 0.65, 0.4)
+    assert 0.10 <= nearSpeed < farSpeed < 0.30
 
 
 def test_forward_velocity_respects_minimum():
-    assert calculate_forward_velocity(1.5, 0.10, 0.04, 3.0) == 0.04
+    speed = calculate_forward_velocity(1.5, 0.0, 0.30, 0.10, 0.65, 0.4)
+    assert speed == 0.10

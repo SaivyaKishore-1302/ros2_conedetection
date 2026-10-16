@@ -4,6 +4,7 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data as sensorQos
 from sensor_msgs.msg import Image
@@ -53,6 +54,9 @@ class ConeDetector(Node):
         self.pub = self.create_publisher(
             ConeArray, "/cone_detector/cones", 10
         )
+        self.maskPub = self.create_publisher(
+            Image, "/cone_detector/hsv_mask", sensorQos
+        )
         self.sub = self.create_subscription(
             Image,
             "/camera/image_raw",
@@ -70,6 +74,11 @@ class ConeDetector(Node):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         orangeMask = self._clean_mask(cv2.inRange(hsv, orangeLow, orangeHigh))
         blueMask = self._clean_mask(cv2.inRange(hsv, blueLow, blueHigh))
+        combinedMask = cv2.bitwise_or(orangeMask, blueMask)
+
+        maskMessage = self.bridge.cv2_to_imgmsg(combinedMask, encoding="mono8")
+        maskMessage.header = msg.header
+        self.maskPub.publish(maskMessage)
 
         orange = analyse_cone(orangeMask, self.minArea, self.scale)
         blue = analyse_cone(blueMask, self.minArea, self.scale)
@@ -102,9 +111,12 @@ def main(args=None):
     node = ConeDetector()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

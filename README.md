@@ -128,12 +128,15 @@ ros2 run obstacle_avoider obstacle_avoider
 
 | Parameter | Default | Description |
 | --- | ---: | --- |
-| `forward_speed` | `0.10` | Cruise speed in metres per second. |
-| `minimum_forward_speed` | `0.04` | Minimum speed maintained during turns. |
-| `turn_slowdown_gain` | `3.0` | Strength of turn-dependent speed reduction. |
+| `forward_speed` | `0.30` | Cruise speed in metres per second. |
+| `minimum_forward_speed` | `0.10` | Minimum speed maintained during turns. |
+| `braking_distance` | `0.40` | Cone distance at which turn braking increases. |
+| `braking_turn_rate` | `0.65` | Turn rate that applies maximum steering braking. |
 | `kp` | `0.012` | Proportional steering gain. |
-| `max_angular_speed` | `1.5` | Maximum turn rate in radians per second. |
-| `command_timeout` | `0.5` | Seconds without valid input before stopping. |
+| `max_angular_speed` | `0.9` | Maximum turn rate in radians per second. |
+| `steering_smoothing` | `0.30` | Fraction of each new steering command applied per frame. |
+| `steering_deadband` | `4.0` | Pixel error ignored near the image centre. |
+| `command_timeout` | `0.8` | Seconds without valid input before stopping. |
 
 ### Lane follower
 

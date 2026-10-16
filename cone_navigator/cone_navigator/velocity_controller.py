@@ -3,19 +3,45 @@ import math
 from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
 from std_msgs.msg import Float32
 
+from cone_interfaces.msg import ConeArray
 
-def calculate_angular_velocity(cte, kp, maxSpeed):
+
+def calculate_angular_velocity(cte, kp, maxSpeed, deadband=0.0):
     if not math.isfinite(cte):
         return None
+
+    if abs(cte) <= deadband:
+        return 0.0
 
     turn = -kp * cte
     return max(-maxSpeed, min(maxSpeed, turn))
 
 
-def calculate_forward_velocity(turn, cruiseSpeed, minSpeed, slowdownGain):
-    speed = cruiseSpeed / (1.0 + slowdownGain * abs(turn))
+def calculate_forward_velocity(
+    turn,
+    coneDistance,
+    cruiseSpeed,
+    minSpeed,
+    brakingTurnRate,
+    brakingDistance,
+):
+    turnRatio = (
+        min(1.0, abs(turn) / brakingTurnRate)
+        if brakingTurnRate > 0.0
+        else 1.0
+    )
+    if math.isfinite(coneDistance) and brakingDistance > 0.0:
+        proximity = max(
+            0.0,
+            min(1.0, (brakingDistance - coneDistance) / brakingDistance),
+        )
+    else:
+        proximity = 0.5
+    braking = min(1.0, turnRatio * (0.45 + proximity))
+    speed = cruiseSpeed - (cruiseSpeed - minSpeed) * braking
     return max(minSpeed, min(cruiseSpeed, speed))
 
 
@@ -23,20 +49,30 @@ class VelocityController(Node):
     def __init__(self):
         super().__init__("velocity_controller")
 
-        self.declare_parameter("forward_speed", 0.10)
-        self.declare_parameter("minimum_forward_speed", 0.04)
-        self.declare_parameter("turn_slowdown_gain", 3.0)
+        self.declare_parameter("forward_speed", 0.30)
+        self.declare_parameter("minimum_forward_speed", 0.10)
+        self.declare_parameter("braking_distance", 0.40)
+        self.declare_parameter("braking_turn_rate", 0.65)
         self.declare_parameter("kp", 0.012)
-        self.declare_parameter("max_angular_speed", 1.5)
-        self.declare_parameter("command_timeout", 0.5)
+        self.declare_parameter("max_angular_speed", 0.9)
+        self.declare_parameter("steering_smoothing", 0.30)
+        self.declare_parameter("steering_deadband", 4.0)
+        self.declare_parameter("command_timeout", 0.8)
 
         self.speed = self.get_parameter("forward_speed").value
         self.minSpeed = self.get_parameter("minimum_forward_speed").value
-        self.slowdownGain = self.get_parameter("turn_slowdown_gain").value
+        self.brakingDistance = self.get_parameter("braking_distance").value
+        self.brakingTurnRate = self.get_parameter("braking_turn_rate").value
         self.kp = self.get_parameter("kp").value
         self.maxSpeed = self.get_parameter("max_angular_speed").value
+        self.smoothing = self.get_parameter("steering_smoothing").value
+        self.deadband = self.get_parameter("steering_deadband").value
         self.timeout = self.get_parameter("command_timeout").value
         self.lastTime = None
+        self.orangeDistance = math.inf
+        self.blueDistance = math.inf
+        self.nearestDistance = math.inf
+        self.turn = 0.0
 
         self.pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.sub = self.create_subscription(
@@ -45,23 +81,45 @@ class VelocityController(Node):
             self.cte_callback,
             10,
         )
+        self.coneSub = self.create_subscription(
+            ConeArray,
+            "/cone_detector/cones",
+            self.coneCallback,
+            10,
+        )
         self.timer = self.create_timer(0.1, self.watchdog_callback)
 
+    def coneCallback(self, msg):
+        distance = msg.distance
+        if not math.isfinite(distance) or distance <= 0.0:
+            distance = math.inf
+        if msg.colour == "orange":
+            self.orangeDistance = distance
+        elif msg.colour == "blue":
+            self.blueDistance = distance
+        self.nearestDistance = min(self.orangeDistance, self.blueDistance)
+
     def cte_callback(self, msg):
-        turn = calculate_angular_velocity(
-            msg.data, self.kp, self.maxSpeed
+        requestedTurn = calculate_angular_velocity(
+            msg.data, self.kp, self.maxSpeed, self.deadband
         )
-        if turn is None:
-            self.lastTime = None
-            self.publish_stop()
+        if requestedTurn is None:
+            if self.lastTime is None:
+                self.publish_stop()
             return
+
+        blend = max(0.0, min(1.0, self.smoothing))
+        self.turn += blend * (requestedTurn - self.turn)
+        turn = self.turn
 
         cmd = Twist()
         cmd.linear.x = float(calculate_forward_velocity(
             turn,
+            self.nearestDistance,
             self.speed,
             self.minSpeed,
-            self.slowdownGain,
+            self.brakingTurnRate,
+            self.brakingDistance,
         ))
         cmd.angular.z = float(turn)
         self.pub.publish(cmd)
@@ -78,14 +136,17 @@ class VelocityController(Node):
             self.publish_stop()
 
     def publish_stop(self):
+        self.turn = 0.0
         self.pub.publish(Twist())
 
 
 def main(args=None):
-    rclpy.init(args=args)
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     node = VelocityController()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.publish_stop()
         node.destroy_node()
